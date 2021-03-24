@@ -67,7 +67,9 @@ let fileName = 'funko_pop';
 
         let productSeries = element.querySelector('.catalog-item-details li')
         let handle = elementName.toLowerCase().replace(/ /g,'-').replace('(', '').replace(')', '');
-
+        let hdbID = imageName.slice(0, imageName.indexOf('https://www.hobbydb.com/processed_uploads/catalog_item_photo/catalog_item_photo/image/'));
+        hdbID = hdbID.slice(0, 6);
+        console.log(hdbID);
         let jsonObj = {
           handle: handle,
           title: elementName,
