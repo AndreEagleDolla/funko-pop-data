@@ -1,9 +1,20 @@
+
+
 const puppeteer = require("puppeteer-extra");
 const fs = require("fs");
 const AdblockerPlugin = require("puppeteer-extra-plugin-adblocker");
 
+const priceApiUri='hobbydb.com/api/historical_ci_values?catalog_item_id=';
+
 let masterJsonArray = [];
 let fileName = "funko_pop";
+
+
+
+const priceData = async (pid) => {
+   await fetch(priceApiUri+pid).then((res) => {return res.data} );
+}
+
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -60,8 +71,10 @@ let fileName = "funko_pop";
           .querySelector(".catalog-item-name")
           .innerHTML.trim();
         let imageName = element.querySelector(".catalog-item-info img").src;
+
         let hdbID = imageName.slice(86, 92);
-        console.log(hdbID);
+        let pd = priceData(hdbID)
+        
         let elementSeries = [];
 
         element
@@ -91,8 +104,8 @@ let fileName = "funko_pop";
           imageName: imageName,
           series: elementSeries,
           pid: hdbID,
+          priceData: pd,
         };
-
         jsonArray.push(jsonObj);
       });
 
