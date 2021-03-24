@@ -1,13 +1,13 @@
-const puppeteer = require('puppeteer-extra')
-const fs = require('fs');
-const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
+const puppeteer = require("puppeteer-extra");
+const fs = require("fs");
+const AdblockerPlugin = require("puppeteer-extra-plugin-adblocker");
 
 let masterJsonArray = [];
-let fileName = 'funko_pop';
+let fileName = "funko_pop";
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
   });
   const page = await browser.newPage();
 
@@ -15,17 +15,19 @@ let fileName = 'funko_pop';
   await page.setRequestInterception(true);
 
   // Adblock on puppeteer
-  puppeteer.use(AdblockerPlugin({blockTrackers: true}))
+  puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 
   //if the page makes a  request to a resource type of image or stylesheet then abort that request
-  page.on('request', request => {
-    if (request.resourceType() === 'font' || request.resourceType() === 'stylesheet')
+  page.on("request", (request) => {
+    if (
+      request.resourceType() === "font" ||
+      request.resourceType() === "stylesheet"
+    )
       request.abort();
-    else
-      request.continue();
+    else request.continue();
   });
 
-  page.on('console', (msg) => console[msg._type]('PAGE LOG:', msg._text));
+  page.on("console", (msg) => console[msg._type]("PAGE LOG:", msg._text));
 
   const initialPageScrape = 1;
   let pageCounter = initialPageScrape;
@@ -35,16 +37,17 @@ let fileName = 'funko_pop';
   const lastPage = 2395;
 
   // Testing purposes
-  while(pageCounter === initialPageScrape || pageCounter < lastPage) {
+  while (pageCounter === initialPageScrape || pageCounter < lastPage) {
+    // let scrapEnded = false;
 
-  // let scrapEnded = false;
-
-  // while(!scrapEnded) {
-    await page.goto(`https://www.hobbydb.com/marketplaces/poppriceguide/catalog_items?filters[in_collection]=all&filters[in_wishlist]=all&filters[on_sale]=all&order[name]=created_at&order[sort]=desc&page=${pageCounter}&q=funko&subvariants=true`);
+    // while(!scrapEnded) {
+    await page.goto(
+      `https://www.hobbydb.com/marketplaces/poppriceguide/catalog_items?filters[in_collection]=all&filters[in_wishlist]=all&filters[on_sale]=all&order[name]=created_at&order[sort]=desc&page=${pageCounter}&q=funko&subvariants=true`
+    );
 
     await sleep(3000);
 
-    let results = await page.$eval('html', function(html) {
+    let results = await page.$eval("html", function (html) {
       let jsonArray = [];
 
       // if (html.querySelector('.no-search-results')) {
@@ -52,35 +55,48 @@ let fileName = 'funko_pop';
       //   break;
       // }
 
-      html.querySelectorAll('.catalog-item-card').forEach(function(element) {
-        let elementName = element.querySelector('.catalog-item-name').innerHTML.trim();
-        let imageName = element.querySelector('.catalog-item-info img').src;
-
+      html.querySelectorAll(".catalog-item-card").forEach(function (element) {
+        let elementName = element
+          .querySelector(".catalog-item-name")
+          .innerHTML.trim();
+        let imageName = element.querySelector(".catalog-item-info img").src;
+        let hdbID = imageName.slice(86, 92);
+        console.log(hdbID);
         let elementSeries = [];
 
-        element.querySelectorAll('.catalog-item-details li').forEach(function(listElement) {
-          let listElementValue = listElement.textContent.replace(/[\n\r]+|[\s]{2,}/g, ' ').trim();
-          if(listElementValue.startsWith('Series:')) {
-            elementSeries = listElementValue.replace(/ +(?= )/g,'').replace('Series: ', '').split(' , ');
-          }
-        });
+        element
+          .querySelectorAll(".catalog-item-details li")
+          .forEach(function (listElement) {
+            let listElementValue = listElement.textContent
+              .replace(/[\n\r]+|[\s]{2,}/g, " ")
+              .trim();
+            if (listElementValue.startsWith("Series:")) {
+              elementSeries = listElementValue
+                .replace(/ +(?= )/g, "")
+                .replace("Series: ", "")
+                .split(" , ");
+            }
+          });
 
-        let productSeries = element.querySelector('.catalog-item-details li')
-        let handle = elementName.toLowerCase().replace(/ /g,'-').replace('(', '').replace(')', '');
-        let hdbID = imageName.slice(0, imageName.indexOf('https://www.hobbydb.com/processed_uploads/catalog_item_photo/catalog_item_photo/image/'));
-        hdbID = hdbID.slice(0, 6);
-        console.log(hdbID);
+        let productSeries = element.querySelector(".catalog-item-details li");
+        let handle = elementName
+          .toLowerCase()
+          .replace(/ /g, "-")
+          .replace("(", "")
+          .replace(")", "");
+
         let jsonObj = {
           handle: handle,
           title: elementName,
           imageName: imageName,
           series: elementSeries,
+          pid: hdbID,
         };
 
         jsonArray.push(jsonObj);
       });
 
-      return jsonArray
+      return jsonArray;
     });
 
     masterJsonArray = masterJsonArray.concat(results);
@@ -88,7 +104,9 @@ let fileName = 'funko_pop';
     console.log(pageCounter);
     console.log(masterJsonArray.length);
 
-    response = await page.$eval('html', el => el.querySelectorAll('.catalog-item-card'));
+    response = await page.$eval("html", (el) =>
+      el.querySelectorAll(".catalog-item-card")
+    );
     pageCounter++;
   }
 
